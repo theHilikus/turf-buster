@@ -3,7 +3,7 @@ import os
 from time import sleep
 
 import yaml
-from gpiozero import Motor
+from gpiozero import PhaseEnableMotor
 
 from location.provider import CoordinatesProvider
 
@@ -13,12 +13,9 @@ class Car:
         self.calibration_file = args.working_folder + "locomotion-calibration.yml"
         if os.path.exists(self.calibration_file):
             self.calibration = self._read_calibration()
-
         self.coordinates_provider = CoordinatesProvider()
-        self.left_motor = Motor(forward=27, backward=17, enable=22)
-        self.left_motor.forward_device.frequency = 1000  # Hz
-        self.right_motor = Motor(forward=6, backward=5, enable=13)
-        self.right_motor.forward_device.frequency = 1000  # Hz
+        self.left_motor = PhaseEnableMotor(phase=17, enable=27)
+        self.right_motor = PhaseEnableMotor(phase=6, enable=5)
 
     def _read_calibration(self):
         with open(self.calibration_file, "r") as file:
@@ -92,6 +89,8 @@ class Car:
         movement_duration = meter_time * distance / 1000
         power_left = straight_calibration["motorLeft"]
         power_right = straight_calibration["motorRight"]
-        logging.debug(f"Moving left motor at {power_left} and right motor at {power_right} for {movement_duration}s")
+        self.left_motor.enable_device.frequency = straight_calibration["frequency"]  # Hz
+        self.right_motor.enable_device.frequency = straight_calibration["frequency"]  # Hz
+        logging.debug(f"Moving left motor at {power_left} and right motor at {power_right} with frequency {straight_calibration['frequency']}Hz for {movement_duration}s")
 
         return power_left, power_right, movement_duration
