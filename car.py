@@ -68,10 +68,15 @@ class Car:
 
     def turn(self, degrees):
         logging.info(f"Turning {degrees} degrees")
+        power_left, power_right, movement_duration = self._calculate_turn_motor_power(degrees)
+        self.left_motor.forward(power_left)
+        self.right_motor.forward(power_right)
+        self.movement_timer.wait(movement_duration)
+        logging.debug("Turning movement finished")
 
     def forward(self, distance):
         logging.info(f"Advancing {distance} meters forwards")
-        power_left, power_right, movement_duration = self._calculate_motors_power(distance)
+        power_left, power_right, movement_duration = self._calculate_straight_motors_power(distance)
         self.left_motor.forward(power_left)
         self.right_motor.forward(power_right)
         self.movement_timer.wait(movement_duration)
@@ -79,23 +84,40 @@ class Car:
 
     def backward(self, distance):
         logging.info(f"Advancing {distance} meters backward")
-        power_left, power_right, movement_duration = self._calculate_motors_power(distance)
+        power_left, power_right, movement_duration = self._calculate_straight_motors_power(distance)
         self.left_motor.backward(power_left)
         self.right_motor.backward(power_right)
         self.movement_timer.wait(movement_duration)
         logging.debug("Backward movement finished")
 
-    def _calculate_motors_power(self, distance):
+    def _calculate_straight_motors_power(self, distance):
         if not os.path.exists(self.calibration_file):
             raise RuntimeError(f"Calibration file not found in {self.calibration_file}")
 
         straight_calibration = self.calibration["straight"]
         meter_time = straight_calibration["duration"] / straight_calibration["distance"]
-        movement_duration = meter_time * distance / 1000
-        power_left = straight_calibration["motorLeft"]
-        power_right = straight_calibration["motorRight"]
-        self.left_motor.enable_device.frequency = straight_calibration["frequency"]  # Hz
-        self.right_motor.enable_device.frequency = straight_calibration["frequency"]  # Hz
-        logging.debug(f"Moving left motor at {power_left} and right motor at {power_right} with frequency {straight_calibration['frequency']}Hz for {movement_duration}s")
+        return self._calculate_motor_power(distance, meter_time, straight_calibration)
 
+    def _calculate_turn_motor_power(self, angle):
+        if not os.path.exists(self.calibration_file):
+            raise RuntimeError(f"Calibration file not found in {self.calibration_file}")
+
+        turn_calibration = self.calibration["turning"]
+        degree_time = turn_calibration["duration"] / turn_calibration["angle"]
+        power_left, power_right, movement_duration = self._calculate_motor_power(abs(angle), degree_time, turn_calibration)
+        if angle > 0:
+            return power_left, power_right, movement_duration
+        elif angle < 0:
+            return power_right, power_left, movement_duration
+        else:
+            return 0, 0, 0
+
+    def _calculate_motor_power(self, distance, meter_time, calibration):
+        movement_duration = meter_time * distance / 1000
+        power_left = calibration["motorLeft"]
+        power_right = calibration["motorRight"]
+        self.left_motor.enable_device.frequency = calibration["frequency"]  # Hz
+        self.right_motor.enable_device.frequency = calibration["frequency"]  # Hz
+        logging.debug(
+            f"Moving left motor at {power_left} and right motor at {power_right} with frequency {calibration['frequency']}Hz for {movement_duration}s")
         return power_left, power_right, movement_duration
