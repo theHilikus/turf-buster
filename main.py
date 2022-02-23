@@ -25,7 +25,7 @@ def main() -> int:
     elif args.command == "turn":
         the_car.turn(args.angle)
     elif args.command == "calibrate":
-        the_car.calibrate()
+        the_car.calibrate(args)
     else:
         raise RuntimeError(f"Unknown command: {args.command}")
 
@@ -47,6 +47,13 @@ def parse_arguments():
     parser_turn.add_argument("angle", type=int, help="The angle to turn in degrees")
 
     subparsers.add_parser("stop", help="Stops all motors")
+
+    parser_calibrate = subparsers.add_parser("calibrate", help="Calibrates moving and turning")
+    parser_calibrate.add_argument("--straight-power", help="The power of both motors. Float between 0.0 and 1.0", default=0.5)
+    parser_calibrate.add_argument("--turn-power-left", help="The power of the left motor when turning. Float between 0.0 and 1.0", default=0)
+    parser_calibrate.add_argument("--turn-power-right", help="The power of the right motor when turning. Float between 0.0 and 1.0", default=0.5)
+    parser_calibrate.add_argument("--frequency", help="The frequency of the PWM in Hertz", default=1000)
+    parser_calibrate.add_argument("--duration", help="The duration of the calibration in ms", default=3000)
 
     args = parser.parse_args()
     return args

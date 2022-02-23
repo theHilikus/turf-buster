@@ -29,27 +29,52 @@ class Car:
                 print(exc)
                 return None
 
-    def calibrate(self):
+    def calibrate(self, args):
         logging.info("Calibrating car")
         calibration = {
-            "straight": self._calibrate_speed(),
-            "turning": self._calibrate_turning()
+            "straight": self._calibrate_speed(args.straight_power, args.frequency, args.duration),
+            "turning": self._calibrate_turning(args.turn_power_left, args.turn_power_right, args.frequency, args.duration)
         }
 
         self._write_calibration(calibration)
 
-    def _calibrate_speed(self):
-        logging.debug("Calibrating speed")
-        start_position = self.coordinates_provider.get_coordinates()
-        self.left_motor.start(100, 5000)
-        self.right_motor.start(100, 5000)
-        end_position = self.coordinates_provider.get_coordinates()
-        delta_position = start_position - end_position
-        # TODO: complete
+    def _calibrate_speed(self, straight_power, frequency, duration):
+        power_left = straight_power
+        power_right = straight_power
+        logging.debug(f"Calibrating speed with power_left = {power_left} and power_right = {power_right} for a duration of {duration}ms. PWM frequency = {frequency}Hz")
+        self.left_motor.enable_device.frequency = frequency
+        self.left_motor.forward(power_left)
+        self.right_motor.enable_device.frequency = frequency
+        self.right_motor.forward(power_right)
+        distance = input("What was the distance travelled in meters? ")
+        result = {
+            "motorLeft": float(power_left),
+            "motorRight": float(power_right),
+            "frequency": int(frequency),
+            "duration": int(duration),
+            "distance": float(distance)
+        }
 
-    def _calibrate_turning(self):
-        logging.debug("Calibrating turning")
-        # TODO: complete
+        return result
+
+    def _calibrate_turning(self, turn_power_left, turn_power_right, frequency, duration):
+        power_left = turn_power_left
+        power_right = turn_power_right
+        logging.debug(f"Calibrating turning with power_left = {power_left} and power_right = {power_right} for a duration of {duration}ms. PWM frequency = {frequency}Hz")
+        self.left_motor.enable_device.frequency = frequency
+        self.left_motor.forward(power_left)
+        self.right_motor.enable_device.frequency = frequency
+        self.right_motor.forward(power_right)
+        angle = input("What was the rotation in degrees? ")
+        result = {
+            "motorLeft": float(power_left),
+            "motorRight": float(power_right),
+            "frequency": int(frequency),
+            "duration": int(duration),
+            "angle": int(angle)
+        }
+
+        return result
 
     def _write_calibration(self, calibration):
         if os.path.exists(self.calibration_file):
@@ -57,6 +82,7 @@ class Car:
         with open(self.calibration_file, "w") as file:
             try:
                 yaml.dump(calibration, file)
+                logging.info(f"Calibration file wrote to {self.calibration_file}")
             except yaml.YAMLError as exc:
                 print(exc)
 
