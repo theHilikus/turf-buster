@@ -1,10 +1,10 @@
 import logging
 import os
-from time import sleep
+from threading import Event
 
 import yaml
-from gpiozero import PhaseEnableMotor
 from gpiozero import Button
+from gpiozero import PhaseEnableMotor
 
 from location.provider import CoordinatesProvider
 
@@ -19,6 +19,7 @@ class Car:
         self.right_motor = PhaseEnableMotor(phase=6, enable=5)
         self.stop_button = Button(20)
         self.stop_button.when_pressed = self.stop
+        self.movement_timer = Event()
 
     def _read_calibration(self):
         with open(self.calibration_file, "r") as file:
@@ -63,6 +64,7 @@ class Car:
         logging.info("Stopping car")
         self.left_motor.stop()
         self.right_motor.stop()
+        self.movement_timer.set()  # interrupt threads sleeping
 
     def turn(self, degrees):
         logging.info(f"Turning {degrees} degrees")
@@ -72,7 +74,7 @@ class Car:
         power_left, power_right, movement_duration = self._calculate_motors_power(distance)
         self.left_motor.forward(power_left)
         self.right_motor.forward(power_right)
-        sleep(movement_duration)
+        self.movement_timer.wait(movement_duration)
         logging.debug("Forward movement finished")
 
     def backward(self, distance):
@@ -80,7 +82,7 @@ class Car:
         power_left, power_right, movement_duration = self._calculate_motors_power(distance)
         self.left_motor.backward(power_left)
         self.right_motor.backward(power_right)
-        sleep(movement_duration)
+        self.movement_timer.wait(movement_duration)
         logging.debug("Backward movement finished")
 
     def _calculate_motors_power(self, distance):
