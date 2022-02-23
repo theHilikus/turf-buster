@@ -4,6 +4,7 @@ from time import sleep
 
 import yaml
 from gpiozero import PhaseEnableMotor
+from gpiozero import Button
 
 from location.provider import CoordinatesProvider
 
@@ -16,6 +17,8 @@ class Car:
         self.coordinates_provider = CoordinatesProvider()
         self.left_motor = PhaseEnableMotor(phase=17, enable=27)
         self.right_motor = PhaseEnableMotor(phase=6, enable=5)
+        self.stop_button = Button(20)
+        self.stop_button.when_pressed = self.stop
 
     def _read_calibration(self):
         with open(self.calibration_file, "r") as file:
