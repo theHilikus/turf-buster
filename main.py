@@ -71,7 +71,7 @@ def configure_logger(args):
     else:
         log_level = logging.INFO
 
-    logger_format = '%(asctime)s %(levelname)-5s -- %(name)-8s : %(message)s'
+    logger_format = '%(asctime)s.%(msecs)03d %(levelname)-5s -- %(name)-8s : %(message)s'
     logging.basicConfig(format=logger_format, level=log_level, stream=sys.stdout, datefmt="%H:%M:%S")
 
 
