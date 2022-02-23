@@ -74,7 +74,13 @@ class Car:
         self.movement_timer.wait(movement_duration)
         logging.debug("Turning movement finished")
 
-    def forward(self, distance):
+    def move(self, distance):
+        if distance > 0:
+            self._forward(distance)
+        elif distance < 0:
+            self._backward(abs(distance))
+
+    def _forward(self, distance):
         logging.info(f"Advancing {distance} meters forwards")
         power_left, power_right, movement_duration = self._calculate_straight_motors_power(distance)
         self.left_motor.forward(power_left)
@@ -82,7 +88,7 @@ class Car:
         self.movement_timer.wait(movement_duration)
         logging.debug("Forward movement finished")
 
-    def backward(self, distance):
+    def _backward(self, distance):
         logging.info(f"Advancing {distance} meters backward")
         power_left, power_right, movement_duration = self._calculate_straight_motors_power(distance)
         self.left_motor.backward(power_left)
@@ -96,7 +102,9 @@ class Car:
 
         straight_calibration = self.calibration["straight"]
         meter_time = straight_calibration["duration"] / straight_calibration["distance"]
-        return self._calculate_motor_power(distance, meter_time, straight_calibration)
+        power_left, power_right, movement_duration = self._calculate_motor_power(distance, meter_time, straight_calibration)
+        logging.debug(f"Moving left motor at {power_left} and right motor at {power_right} with frequency {straight_calibration['frequency']}Hz for {movement_duration}s")
+        return power_left, power_right, movement_duration
 
     def _calculate_turn_motor_power(self, angle):
         if not os.path.exists(self.calibration_file):
@@ -104,13 +112,16 @@ class Car:
 
         turn_calibration = self.calibration["turning"]
         degree_time = turn_calibration["duration"] / turn_calibration["angle"]
-        power_left, power_right, movement_duration = self._calculate_motor_power(abs(angle), degree_time, turn_calibration)
         if angle > 0:
-            return power_left, power_right, movement_duration
+            power_left, power_right, movement_duration = self._calculate_motor_power(abs(angle), degree_time, turn_calibration)
         elif angle < 0:
-            return power_right, power_left, movement_duration
+            power_right, power_left, movement_duration = self._calculate_motor_power(abs(angle), degree_time, turn_calibration)
         else:
-            return 0, 0, 0
+            power_left, power_right, movement_duration = 0, 0, 0
+
+        logging.debug(f"Moving left motor at {power_left} and right motor at {power_right} with frequency {turn_calibration['frequency']}Hz for {movement_duration}s")
+
+        return power_left, power_right, movement_duration
 
     def _calculate_motor_power(self, distance, meter_time, calibration):
         movement_duration = meter_time * distance / 1000
@@ -118,6 +129,5 @@ class Car:
         power_right = calibration["motorRight"]
         self.left_motor.enable_device.frequency = calibration["frequency"]  # Hz
         self.right_motor.enable_device.frequency = calibration["frequency"]  # Hz
-        logging.debug(
-            f"Moving left motor at {power_left} and right motor at {power_right} with frequency {calibration['frequency']}Hz for {movement_duration}s")
+
         return power_left, power_right, movement_duration

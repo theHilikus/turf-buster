@@ -18,13 +18,13 @@ def main() -> int:
 
     signal.signal(signal.SIGINT, stop_everything)
     signal.signal(signal.SIGTERM, stop_everything)
-    if args.command.startswith("st"):
+    if args.command == "stop":
         the_car.stop()
-    elif args.command.startswith("fo"):
-        the_car.forward(args.distance)
-    elif args.command.startswith("ba"):
-        the_car.backward(args.distance)
-    elif args.command.startswith("ca"):
+    elif args.command == "move":
+        the_car.move(args.distance)
+    elif args.command == "turn":
+        the_car.turn(args.angle)
+    elif args.command == "calibrate":
         the_car.calibrate()
     else:
         raise RuntimeError(f"Unknown command: {args.command}")
@@ -38,13 +38,9 @@ def parse_arguments():
                         type=dir_path)
     parser.add_argument("--fake-locations", help="A list of fake locations. Disables getting locations from the GPS")
     parser.add_argument("-v", "--verbose", help="increase log verbosity", action="store_true")
-    # parser.add_argument("command", help="The command to execute", choices=['calibrate', "move", "turn", "stop"])
     subparsers = parser.add_subparsers(help="Commands help", dest="command", required=True)
 
-    parser_move = subparsers.add_parser("forward", help="Moves the car forward the specified distance in meters")
-    parser_move.add_argument("distance", type=float, help="The distance to move in meters")
-
-    parser_move = subparsers.add_parser("backward", help="Moves the car backward the specified distance in meters")
+    parser_move = subparsers.add_parser("move", help="Moves the car the specified distance in meters. If negative, moves the car backward")
     parser_move.add_argument("distance", type=float, help="The distance to move in meters")
 
     parser_turn = subparsers.add_parser("turn", help="Turns the car for the specified angle")
